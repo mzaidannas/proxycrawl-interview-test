@@ -1,0 +1,9 @@
+[submodule "scheduler"]
+	path = scheduler
+	url = git@github.com:mzaidannas/proxycrawl-interview-scheduler.git
+[submodule "crawler"]
+	path = crawler
+	url = git@github.com:mzaidannas/proxycrawl-interview-crawler.git
+[submodule "api"]
+	path = api
+	url = git@github.com:mzaidannas/proxycrawl-interview-api.git
