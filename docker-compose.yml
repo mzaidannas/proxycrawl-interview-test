@@ -1,0 +1,109 @@
+version: '3.7'
+
+# To access data postgres, redis and rabbitmq writes within container from host machine
+volumes:
+  postgres_data: {}
+  redis_data: {}
+  rabbitmq_data: {}
+  gem_cache: {}
+
+services:
+  postgres:
+    image: postgres:alpine
+    restart: always
+    environment:
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-password}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+
+  redis:
+    image: redis:alpine
+    restart: always
+    volumes:
+      - redis_data:/data
+    ports:
+      - "6379:6379"
+
+  rabbitmq:
+    image: rabbitmq:alpine
+    restart: always
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    ports:
+      - "5672:5672"
+
+  api:
+    stdin_open: true # docker run -i
+    tty: true        # docker run -t
+    build:
+      context: ./api
+      dockerfile: ./api/Dockerfile
+      args:
+        RACK_ENV: ${RACK_ENV:-development}
+    image: proxycrawler_api
+    depends_on:
+      - postgres
+      - redis
+      - rabbitmq
+    environment:
+      RACK_ENV: ${RACK_ENV:-development}
+    env_file: .env
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./api:/var/www/proxycrawler/api
+      - gem_cache:/usr/local/bundle
+    entrypoint: docker/app/entrypoint.sh
+    command: bundle exec falcon serve -b http://0.0.0.0:${PORT:-3000} --cache --threaded --preload config/preload.rb
+
+  crawler:
+    image: proxycrawler_crawler
+    build:
+      context: ./crawler
+      dockerfile: ./crawler/Dockerfile
+      args:
+        RACK_ENV: ${RACK_ENV:-development}
+    depends_on:
+      - postgres
+      - redis
+      - rabbitmq
+    environment:
+      RACK_ENV: ${RACK_ENV:-development}
+    env_file: .env
+    volumes:
+      - ./crawler:/var/www/proxycrawler/crawler
+      - gem_cache:/usr/local/bundle
+    command: bundle exec sidekiq -C config/sidekiq.yml
+
+  scheduler:
+    image: proxycrawler_scheduler
+    build:
+      context: ./scheduler
+      dockerfile: ./scheduler/Dockerfile
+      args:
+        RACK_ENV: ${RACK_ENV:-development}
+    depends_on:
+      - postgres
+      - redis
+      - rabbitmq
+    environment:
+      RACK_ENV: ${RACK_ENV:-development}
+    env_file: .env
+    volumes:
+      - ./scheduler:/var/www/proxycrawler/scheduler
+      - gem_cache:/usr/local/bundle
+    command: bundle exec sidekiq -C config/sidekiq.yml
+
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        RACK_ENV: ${RACK_ENV:-development}
+    image: proxycrawler_web
+    depends_on:
+      - api
+    ports:
+      - 80:80
