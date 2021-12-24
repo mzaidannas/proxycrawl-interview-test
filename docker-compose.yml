@@ -27,12 +27,13 @@ services:
       - "6379:6379"
 
   rabbitmq:
-    image: rabbitmq:alpine
+    image: rabbitmq:management-alpine
     restart: always
     volumes:
       - rabbitmq_data:/var/lib/rabbitmq
     ports:
       - "5672:5672"
+      - "15672:15672"
 
   api:
     stdin_open: true # docker run -i
