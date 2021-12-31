@@ -47,8 +47,6 @@ services:
     depends_on:
       - postgres
       - redis
-    environment:
-      RAIlS_ENV: ${RAIlS_ENV:-development}
     env_file: .env
     ports:
       - "3000:3000"
@@ -70,9 +68,6 @@ services:
       - postgres
       - redis
       - rabbitmq
-    environment:
-      RAIlS_ENV: ${RAIlS_ENV:-development}
-      AMQP_URL: ${AMQP_URL:-amqp://guest:guest@rabbitmq:5672}
     env_file: .env
     volumes:
       - ./crawler:/var/www/proxycrawler/crawler
@@ -86,13 +81,11 @@ services:
       dockerfile: ./scheduler/Dockerfile
     depends_on:
       - rabbitmq
-    environment:
-      AMQP_URL: ${AMQP_URL:-amqp://guest:guest@rabbitmq:5672}
     env_file: .env
     volumes:
       - ./scheduler:/var/www/proxycrawler/scheduler
       - gem_cache:/usr/local/bundle
-    command: bundle exec sidekiq -C config/sidekiq.yml
+    command: ruby scheduler.rb
 
   web:
     build:

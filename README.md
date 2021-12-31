@@ -1,34 +1,113 @@
-# ProxyCrawl Test
+# Webscraper in ruby microservices
 
-Welcome to ProxyCrawl test, if you haven't applied for a job offer yet, please do so before starting the test by emailing us at `jobs at proxycrawl dot com`
+Basically we have 3 services
 
-## Instructions
+ 1. **Scheduler**
+ 2. **Crawler**
+ 3. **Api**
 
-1. Clone/fork this repository.
-2. Read [Project to Build](#project-to-build) section to see what you have to build in the test.
-3. Make commits to the repository like you would normally do on your daily job.
-4. Once you are done, if you've forked this project, you can send us the link to the Github project. If you haven't, you can send us the zip file of the project (make sure it includes the `.git` folder).
+ **Scheduler** is responsible for sending url to be scraped to crawler service via [rabbitmq](https://www.rabbitmq.com/)
+ **Crawler** picks up urls from rabbitmq and processes them according to the processors defined in it. A processor can also send additional urls to rabbitmq to be processed through separate processor.
+ After crawling pages. HTML is parsed according to processor defined and data is stored into [postgresql](https://www.postgresql.org/)
+ **Api** is a REST service on top of that database that serves content in json format
 
-## Project to build
+# Technologies used
 
-Create an application using NodeJS or Ruby (depending on the job offer you've applied) that scrapes Amazon SERP pages and saves product details in a database using [ProxyCrawl Crawling API](https://proxycrawl.com/docs/crawling-api).
+ - [**Ruby on Rails**](https://rubyonrails.org/)
 
-*Please create a free account if you haven't done so yet, the first 1000 requests are free of charge, if you need more free requests please ask the person in charge of your role application.*
+> Web framework to be used in API and Crawler services.
+ - [**Rabbitmq**](https://rubyonrails.org/)
+> Message broker used as a communication medium between multiple ruby microservices
+ - [**postgresql**](https://www.postgresql.org/)
+> Data storage used to store and index amazon products data
+ - [**Docker**](https://www.docker.com/)
+> Used for local development setup and well as running all the services combined. Can also help in production deployment and autoscaling
+# Concepts Implemented
+ - Micro Service Architecture
+ - Ruby scripting
+ - Signal Trapping
+ - Scheduled workers
+ - Long running ruby processes
+ - Ruby async programming
+ - HTTP streaming (Huge json responses)
+ - GIN(General Inverted Indices) for text searching
+ - BRIN (Block Range Indices) for date range quering
+ - Hash indices for exact matching
+ - Background workers(Sneaker rabbitmq client)
+ - Product categories with hierarchy system(Parent client categories)
+ - Falcon async web server (Uses nodejs like event loop for non blocking request/response cycle)
+ - Batch async http calls (I/O wait minimized by using multiple http calls in parallel)
+ - SQL batch inserts/updates for better performance
 
-The application must process a list of Amazon SERP URLs and crawl them using the ProxyCrawl API. The data has to be stored in a SQL database (MySQL, SQLite, etc.) and you should save as much information as you want to make the database rich for each Amazon product if it exists in the DB, do not store it again. The information must be crawled using the [ProxyCrawl Crawling API](https://proxycrawl.com/dashboard/docs).
+# Local setup and running
+Install docker on your system
+ - **MacOS**
+> Install homebrew package manager
+> ```sh
+> /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install.sh)"
+> ```
+Install docker desktop and git with brew cask
+> ```sh
+> brew install git
+> brew cask install docker
+> ```
 
-### Important notes to follow
+- **Windows**
+> Install/Update windows package manager winget (Update app installer package from windows store)
 
-1. The crawling of the Amazon SERP pages has to be done in **background jobs** (ex. to push the URLs to a queue and crawl them as background jobs).
-1. The crawling project should run every week on Monday at 10:00 AM through a predefined scheduler (ex. Same URLs have to be crawled every week and the product info has to be updated accordingly)
-1. The parsing of the raw HTML pages has to be done internally in the project and not to rely on ProxyCrawl API built in scrapers.
-1. Implement **CRUD operations** through a **REST API** which is accessed externally with basic authentication, that should do -- it creates, reads, updates, and deletes (CRUD) data from a database in response to a given HTTP request, and provides a suitable JSON response.
+Install docker desktop and gitusing winget
+> ```sh
+> winget install -e --id Git.Git
+> winget install -e --id Docker.DockerDesktop
+> ```
 
-## Important notes
+- **Ubuntu**
 
-- This project is to showcase your skills, so try to do it as best as you can.
-- You don't have restrictions on libraries or frameworks to use for the test, that is up to you. But don't forget that we want to see your skills, not the ones of the guys from the libraries, so do it wisely ;)
-- We should be able to run the test and try it. If there are setup instructions please include them in this README file.
-- There are no restrictions, limits, or instructions on the frontend part. We want to see your creativity!
-- The test is not time metered but we don't want you to use more than 5 hours on it.
-- If you have any questions, don't hesitate to contact the person in charge of your application.
+Install docker and git using apt package manager
+> ```sh
+> sudo apt purge -y docker docker-engine docker.io containerd runc
+> sudo apt install -y \
+> apt-transport-https \
+> ca-certificates \
+> curl \
+> gnupg-agent \
+> software-properties-common
+> curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
+> echo "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list
+> sudo apt update && sudo apt install -y docker-ce docker-ce-cli containerd.io git
+> sudo systemctl restart docker
+> sudo systemctl enable docker
+> sudo curl -L "https://github.com/docker/compose/releases/download/v2.2.2/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+> sudo chmod +x /usr/local/bin/docker-compose
+> sudo groupadd docker
+> sudo usermod -aG docker $USER
+> newgrp docker
+> ```
+
+Fetch code using git
+```sh
+git clone --recurse-submodules -j8 https://github.com/mzaidannas/proxycrawl-interview-test.git
+```
+Move to project directory
+```sh
+cd proxycrawl-interview-test
+```
+Create env file with required environment variables
+```sh
+tee .env << ENV
+RUBY_OPT='--yjit'
+RAILS_ENV='development'
+LOG_LEVEL='debug'
+DB_HOST='postgres'
+REDIS_URL='redis://redis:6379/0'
+AMQP_URL='amqp://guest:guest@rabbitmq:5672'
+PROXYCRAWL_TOKEN='EfuuQyxFeOlppV4t5Z5gRQ'
+ENV
+```
+Run project
+```sh
+docker-compose up scheduler crawler api
+```
+
+Check products through browser on url
+`http://localhost:3000/products`
