@@ -97,11 +97,14 @@ Create env file with required environment variables
 tee .env << ENV
 RUBY_OPT='--yjit'
 RAILS_ENV='development'
+SCHEDULER_ENV='development'
 LOG_LEVEL='debug'
 DB_HOST='postgres'
 REDIS_URL='redis://redis:6379/0'
 AMQP_URL='amqp://guest:guest@rabbitmq:5672'
 PROXYCRAWL_TOKEN='EfuuQyxFeOlppV4t5Z5gRQ'
+BASIC_AUTH_USERNAME='admin'
+BASIC_AUTH_PASSWORD='admin'
 ENV
 ```
 Run project
