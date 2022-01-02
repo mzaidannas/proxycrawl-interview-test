@@ -40,9 +40,9 @@ services:
     tty: true # docker run -t
     build:
       context: ./api
-      dockerfile: ./api/Dockerfile
+      dockerfile: Dockerfile
       args:
-        RAIlS_ENV: ${RAIlS_ENV:-development}
+        RAILS_ENV: ${RAILS_ENV:-development}
     image: proxycrawler_api
     depends_on:
       - postgres
@@ -53,17 +53,14 @@ services:
     volumes:
       - ./api:/var/www/proxycrawler/api
       - gem_cache:/usr/local/bundle
-    entrypoint: docker/app/entrypoint.sh
-    command: bundle exec falcon serve -b http://0.0.0.0:${PORT:-3000} --cache
-      --threaded --preload config/preload.rb
 
   crawler:
     image: proxycrawler_crawler
     build:
       context: ./crawler
-      dockerfile: ./crawler/Dockerfile
+      dockerfile: Dockerfile
       args:
-        RAIlS_ENV: ${RAIlS_ENV:-development}
+        RAILS_ENV: ${RAILS_ENV:-development}
     depends_on:
       - postgres
       - redis
@@ -72,29 +69,15 @@ services:
     volumes:
       - ./crawler:/var/www/proxycrawler/crawler
       - gem_cache:/usr/local/bundle
-    command: bundle exec sneakers work GetUrlsWorker --require config/preload.rb
 
   scheduler:
     image: proxycrawler_scheduler
     build:
       context: ./scheduler
-      dockerfile: ./scheduler/Dockerfile
+      dockerfile: Dockerfile
     depends_on:
       - rabbitmq
     env_file: .env
     volumes:
       - ./scheduler:/var/www/proxycrawler/scheduler
       - gem_cache:/usr/local/bundle
-    command: ruby scheduler.rb
-
-  web:
-    build:
-      context: .
-      dockerfile: Dockerfile
-      args:
-        RACK_ENV: ${RACK_ENV:-development}
-    image: proxycrawler_web
-    depends_on:
-      - api
-    ports:
-      - 80:80
