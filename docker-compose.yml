@@ -5,7 +5,6 @@ volumes:
   postgres_data: {}
   redis_data: {}
   rabbitmq_data: {}
-  gem_cache: {}
 
 services:
   postgres:
@@ -52,7 +51,6 @@ services:
       - "3000:3000"
     volumes:
       - ./api:/var/www/proxycrawler/api
-      - gem_cache:/usr/local/bundle
 
   crawler:
     image: proxycrawler_crawler
@@ -68,7 +66,6 @@ services:
     env_file: .env
     volumes:
       - ./crawler:/var/www/proxycrawler/crawler
-      - gem_cache:/usr/local/bundle
 
   scheduler:
     image: proxycrawler_scheduler
@@ -82,4 +79,3 @@ services:
     env_file: .env
     volumes:
       - ./scheduler:/var/www/proxycrawler/scheduler
-      - gem_cache:/usr/local/bundle
